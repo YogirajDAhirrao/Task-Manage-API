@@ -1,47 +1,54 @@
-import User from "../models/user.js";
+import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
 const handleLogin = async (req, res) => {
-  const { name, password, email } = req.body;
-  if (!name || !password || !email)
-    return res
-      .status(400)
-      .json({ message: "Username ,email and password are required." });
+  const { email, password } = req.body;
+
+  // Validate required fields
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
 
   try {
+    // Find user by email
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
-    // Compare the provided password with the hashed password in the database
+    // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
+    // Generate JWT
     const token = jwt.sign(
-      { id: user._id, name: user.username, email: user.email }, // Payload (user info)
-      process.env.JWT_SECRET, // Secret key
-      { expiresIn: "1h" } // Token expiration time (1 hour)
+      { id: user._id, name: user.name, email: user.email }, // Fixed: user.name
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
-    // Send the token in a cookie
+    // Set cookie
     res.cookie("token", token, {
-      httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-      secure: process.env.NODE_ENV === "production", // Ensures cookie is sent only over HTTPS in production
-      expires: new Date(Date.now() + 3600000), // Token expires in 1 hour (3600000 ms)
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      expires: new Date(Date.now() + 3600000), // 1 hour
     });
+    console.log(`login cookie ${token} , ${user.name}`);
 
-    // Send response with user details (excluding password) and JWT token
+    // Send response
     res.status(200).json({
       message: "Login successful",
-
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
       },
-      redirect: "/mytasks", // Tells frontend where to go
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

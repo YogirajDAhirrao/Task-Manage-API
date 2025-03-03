@@ -1,9 +1,9 @@
 import Task from "../models/tasks.model.js";
-import User from "../models/User.model.js";
+import User from "../models/user.model.js";
 
 export const handleGetAll = async (req, res) => {
   try {
-    const { username } = req.username;
+    const username = req.username;
 
     if (!username) {
       return res.status(400).json({ message: "Username is required." });
@@ -11,15 +11,20 @@ export const handleGetAll = async (req, res) => {
 
     // Find user by username
     const user = await User.findOne({ name: username });
+    console.log("Found user:", user._id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     // Find tasks assigned to the user
-    const tasks = await Task.find({ assignedTo: user._id });
+    const tasks = await Task.find({ assignedTo: user._id }).populate(
+      "assignedTo",
+      "name email"
+    );
+    console.log(` tasks : ${tasks}`);
 
-    res.status(200).json({ username, tasks });
+    res.status(200).json({ username: user.name, tasks });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });

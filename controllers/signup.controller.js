@@ -1,4 +1,4 @@
-import User from "../models/user.js";
+import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
 const signUp = async (req, res) => {
@@ -16,7 +16,7 @@ const signUp = async (req, res) => {
 
     // Generate a JWT token for the newly created user
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email }, // Payload (user info)
+      { id: newUser._id, email: newUser.email, name: newUser.name }, // Payload (user info)
       process.env.JWT_SECRET, // Secret key
       { expiresIn: "1h" } // Token expiration time (1 hour)
     );
